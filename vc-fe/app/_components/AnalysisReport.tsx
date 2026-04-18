@@ -1,52 +1,57 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import {
-  buildReport,
-  type ReportData,
-  type ReportPayload,
-} from "./report-data";
+import { useEffect, useMemo } from "react";
+import { buildReport, type ReportPayload } from "./report-data";
 
 const CARD_CLASS =
   "rounded-[28px] border border-black/8 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)]";
 
-export function AnalysisReport() {
-  const [report, setReport] = useState<ReportData | null>(null);
+type Props = {
+  payload: ReportPayload;
+  onClose: () => void;
+};
+
+export function AnalysisReport({ payload, onClose }: Props) {
+  const report = useMemo(() => buildReport(payload), [payload]);
 
   useEffect(() => {
-    const raw = window.sessionStorage.getItem("vibe-check-report");
-    if (!raw) {
-      setReport(buildReport());
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as Partial<ReportPayload>;
-      setReport(buildReport(parsed));
-    } catch {
-      setReport(buildReport());
-    }
-  }, []);
-
-  if (!report) {
-    return null;
-  }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handler);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
 
   return (
-    <main className="min-h-dvh bg-[#f6f3ee] px-4 py-6 text-zinc-900">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-        <header className="flex items-center justify-between gap-3 px-1">
-          <Link
-            href="/"
-            className="text-sm font-medium text-zinc-500 transition hover:text-zinc-900"
-          >
-            ← Back
-          </Link>
-          <div className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-            Analysis Report
-          </div>
-        </header>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Analysis report"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-8"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-2xl rounded-[32px] bg-[#f6f3ee] p-4 text-zinc-900 shadow-2xl sm:p-6">
+        <div className="mx-auto flex w-full flex-col gap-4">
+          <header className="flex items-center justify-between gap-3 px-1">
+            <div className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+              Analysis Report
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close report"
+              className="rounded-full border border-black/10 bg-white px-3 py-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-900"
+            >
+              Close
+            </button>
+          </header>
 
         <section className={CARD_CLASS}>
           <div className="inline-flex rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
@@ -208,8 +213,9 @@ export function AnalysisReport() {
             {report.tarot.prediction}
           </p>
         </section>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }
 

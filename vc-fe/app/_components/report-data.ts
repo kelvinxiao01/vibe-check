@@ -48,9 +48,6 @@ export function buildReport(payload?: Partial<ReportPayload>): ReportData {
     (message) => message.role === "assistant",
   );
   const userText = userMessages.map((message) => message.content).join(" ");
-  const assistantText = assistantMessages
-    .map((message) => message.content)
-    .join(" ");
   const totalUserLength = userMessages.reduce(
     (sum, message) => sum + message.content.length,
     0,

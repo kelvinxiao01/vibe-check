@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { AnalysisReport } from "./AnalysisReport";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { ToneSelector } from "./ToneSelector";
@@ -9,11 +9,11 @@ import { VoicePanel } from "./VoicePanel";
 import { BACKEND_URL, type ChatMessage, type Tone } from "./types";
 
 export function ChatShell() {
-  const router = useRouter();
   const [tone, setTone] = useState<Tone>("blunt");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   async function sendMessage(text: string, image: File | null) {
     const previewUrl = image ? URL.createObjectURL(image) : undefined;
@@ -66,15 +66,6 @@ export function ChatShell() {
     }
   }
 
-  function openAnalysisReport() {
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem(
-        "vibe-check-report",
-        JSON.stringify({ tone, messages }),
-      );
-    }
-    router.push("/report");
-  }
 
   return (
     <div className="flex h-dvh flex-col">
@@ -83,36 +74,44 @@ export function ChatShell() {
           <h1 className="text-base font-semibold">Dating Coach</h1>
           <ToneSelector value={tone} onChange={setTone} disabled={voiceOpen} />
         </div>
-        <button
-          type="button"
-          onClick={() => setVoiceOpen((v) => !v)}
-          className={`self-start rounded-full px-4 py-1.5 text-sm font-medium transition-colors sm:self-auto ${
-            voiceOpen
-              ? "bg-red-600 text-white hover:bg-red-700"
-              : "border border-black/10 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-          }`}
-        >
-          {voiceOpen ? "Stop voice" : "🎙 Start voice"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            disabled={messages.length === 0}
+            className="rounded-full border border-black/10 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15 dark:hover:bg-white/10"
+            title={
+              messages.length === 0
+                ? "Send a few messages first to generate a report"
+                : "Generate analysis report"
+            }
+          >
+            Analysis report
+          </button>
+          <button
+            type="button"
+            onClick={() => setVoiceOpen((v) => !v)}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              voiceOpen
+                ? "bg-red-600 text-white hover:bg-red-700"
+                : "border border-black/10 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+            }`}
+          >
+            {voiceOpen ? "Stop voice" : "🎙 Start voice"}
+          </button>
+        </div>
       </header>
       {voiceOpen && (
         <VoicePanel tone={tone} onClose={() => setVoiceOpen(false)} />
       )}
       <MessageList messages={messages} pending={pending} />
-      <div className="border-t border-black/10 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-zinc-950/40">
-        <button
-          type="button"
-          onClick={openAnalysisReport}
-          className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-50 dark:border-white/15 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
-        >
-          Generate Analysis Report
-        </button>
-        <p className="mt-2 text-center text-xs text-zinc-500">
-          Get a full read on your chat patterns, what to improve, and a playful
-          vibe forecast.
-        </p>
-      </div>
       <MessageInput onSend={sendMessage} disabled={pending} />
+      {reportOpen && (
+        <AnalysisReport
+          payload={{ tone, messages }}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -60,11 +60,25 @@ export function MessageInput({ onSend, disabled }: Props) {
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={disabled}
-          className="shrink-0 rounded-full border border-black/10 p-2 text-sm hover:bg-black/5 disabled:opacity-50 dark:border-white/15 dark:hover:bg-white/10"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-black/10 px-3 py-2 text-sm font-medium hover:bg-black/5 disabled:opacity-50 dark:border-white/15 dark:hover:bg-white/10"
           aria-label="Attach image"
           title="Attach image"
         >
-          📎
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 17.93 8.8l-8.58 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+          </svg>
+          Attach
         </button>
         <input
           ref={fileRef}
