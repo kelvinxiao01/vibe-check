@@ -7,15 +7,13 @@ import asyncio
 import hashlib
 from pathlib import Path
 
-from pinecone import Pinecone, ServerlessSpec
-
 from coach.config import settings
 from coach.gemini import embed
+from coach.pinecone_index import get_index
 
 KNOWLEDGE_DIR = Path(__file__).parent / "knowledge"
 CHUNK_CHARS = 2000
 OVERLAP_CHARS = 200
-EMBEDDING_DIM = 768
 
 
 def chunk_text(text: str) -> list[str]:
@@ -32,18 +30,6 @@ def chunk_text(text: str) -> list[str]:
     return chunks
 
 
-def ensure_index(pc: Pinecone):
-    existing = {idx["name"] for idx in pc.list_indexes()}
-    if settings.pinecone_index in existing:
-        return
-    pc.create_index(
-        name=settings.pinecone_index,
-        dimension=EMBEDDING_DIM,
-        metric="cosine",
-        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
-    )
-
-
 async def main():
     if not settings.pinecone_api_key:
         raise SystemExit("PINECONE_API_KEY not set")
@@ -55,9 +41,9 @@ async def main():
         print(f"No markdown files in {KNOWLEDGE_DIR}. Drop .md files there and rerun.")
         return
 
-    pc = Pinecone(api_key=settings.pinecone_api_key)
-    ensure_index(pc)
-    index = pc.Index(settings.pinecone_index)
+    index = get_index()
+    if index is None:
+        raise SystemExit("Pinecone index unavailable (check PINECONE_API_KEY)")
 
     vectors = []
     for path in files:

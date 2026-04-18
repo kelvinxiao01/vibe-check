@@ -25,9 +25,19 @@ TONES: dict[str, str] = {
 }
 
 
-def build_system_prompt(tone: str, rag_context: str | None = None) -> str:
+def build_system_prompt(
+    tone: str,
+    rag_context: str | None = None,
+    memory_context: str | None = None,
+) -> str:
     tone_block = TONES.get(tone, TONES["blunt"])
     parts = [BASE_INSTRUCTIONS, tone_block]
+    if memory_context:
+        parts.append(
+            "What you already know about this user from prior conversations "
+            "(reference naturally; don't announce that you're recalling):\n"
+            + memory_context
+        )
     if rag_context:
         parts.append(
             "Relevant excerpts from the coaching knowledge base (use if helpful, ignore if not):\n"
