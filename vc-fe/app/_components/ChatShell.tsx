@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { ToneSelector } from "./ToneSelector";
@@ -8,6 +9,7 @@ import { VoicePanel } from "./VoicePanel";
 import { BACKEND_URL, type ChatMessage, type Tone } from "./types";
 
 export function ChatShell() {
+  const router = useRouter();
   const [tone, setTone] = useState<Tone>("blunt");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
@@ -64,6 +66,16 @@ export function ChatShell() {
     }
   }
 
+  function openAnalysisReport() {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(
+        "vibe-check-report",
+        JSON.stringify({ tone, messages }),
+      );
+    }
+    router.push("/report");
+  }
+
   return (
     <div className="flex h-dvh flex-col">
       <header className="flex flex-col gap-3 border-b border-black/10 px-4 py-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
@@ -87,6 +99,19 @@ export function ChatShell() {
         <VoicePanel tone={tone} onClose={() => setVoiceOpen(false)} />
       )}
       <MessageList messages={messages} pending={pending} />
+      <div className="border-t border-black/10 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-zinc-950/40">
+        <button
+          type="button"
+          onClick={openAnalysisReport}
+          className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-50 dark:border-white/15 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
+        >
+          Generate Analysis Report
+        </button>
+        <p className="mt-2 text-center text-xs text-zinc-500">
+          Get a full read on your chat patterns, what to improve, and a playful
+          vibe forecast.
+        </p>
+      </div>
       <MessageInput onSend={sendMessage} disabled={pending} />
     </div>
   );
