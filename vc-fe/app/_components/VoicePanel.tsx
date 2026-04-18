@@ -58,16 +58,16 @@ export function VoicePanel({ tone, onClose }: Props) {
     <SessionProvider session={session}>
       <div
         data-lk-theme="default"
-        className="flex flex-col items-center gap-4 border-b border-black/10 bg-black/[0.03] px-4 py-6 dark:border-white/10 dark:bg-white/[0.03]"
+        className="flex flex-col items-center gap-4 border-b border-[var(--border)] bg-[rgba(31,122,90,0.06)] px-5 py-6"
       >
         <VoiceStatus />
         <VoiceAssistantControlBar />
         <button
           type="button"
           onClick={onClose}
-          className="text-xs text-zinc-500 underline"
+          className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]"
         >
-          end voice session
+          End voice session
         </button>
         <RoomAudioRenderer />
       </div>
@@ -79,7 +79,7 @@ function VoiceStatus() {
   const agent = useAgent();
   return (
     <div className="flex w-full max-w-md flex-col items-center gap-2">
-      <div className="text-xs uppercase tracking-wide text-zinc-500">
+      <div className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
         {agent.state}
       </div>
       <div className="h-16 w-full">

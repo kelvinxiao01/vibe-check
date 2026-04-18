@@ -65,29 +65,41 @@ export function ChatShell() {
   }
 
   return (
-    <div className="flex h-dvh flex-col">
-      <header className="flex flex-col gap-3 border-b border-black/10 px-4 py-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-base font-semibold">Dating Coach</h1>
+    <section
+      data-panel
+      className="flex min-h-[44rem] flex-col overflow-hidden rounded-[1.8rem]"
+    >
+      <header className="border-b border-[var(--border)] px-5 py-5 sm:px-6">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">
+                Coach console
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
+                Ask for rewrites, screenshot reads, or strategy help
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setVoiceOpen((v) => !v)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                voiceOpen
+                  ? "bg-[var(--accent-strong)] text-white"
+                  : "border border-[var(--border)] bg-white/50 hover:bg-white/70"
+              }`}
+            >
+              {voiceOpen ? "Stop voice mode" : "Start voice mode"}
+            </button>
+          </div>
           <ToneSelector value={tone} onChange={setTone} disabled={voiceOpen} />
         </div>
-        <button
-          type="button"
-          onClick={() => setVoiceOpen((v) => !v)}
-          className={`self-start rounded-full px-4 py-1.5 text-sm font-medium transition-colors sm:self-auto ${
-            voiceOpen
-              ? "bg-red-600 text-white hover:bg-red-700"
-              : "border border-black/10 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-          }`}
-        >
-          {voiceOpen ? "Stop voice" : "🎙 Start voice"}
-        </button>
       </header>
       {voiceOpen && (
         <VoicePanel tone={tone} onClose={() => setVoiceOpen(false)} />
       )}
       <MessageList messages={messages} pending={pending} />
       <MessageInput onSend={sendMessage} disabled={pending} />
-    </div>
+    </section>
   );
 }

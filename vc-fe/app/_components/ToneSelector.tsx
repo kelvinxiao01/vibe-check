@@ -19,10 +19,10 @@ export function ToneSelector({ value, onChange, disabled }: Props) {
             type="button"
             disabled={disabled}
             onClick={() => onChange(id)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
               active
-                ? "bg-foreground text-background"
-                : "border border-black/10 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+                ? "bg-[var(--foreground)] text-[var(--background)]"
+                : "border border-[var(--border)] bg-white/45 text-[var(--muted)] hover:bg-white/70"
             }`}
           >
             {label}

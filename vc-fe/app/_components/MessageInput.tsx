@@ -37,34 +37,34 @@ export function MessageInput({ onSend, disabled }: Props) {
   }
 
   return (
-    <div className="border-t border-black/10 bg-background px-4 py-3 dark:border-white/10">
+    <div className="border-t border-[var(--border)] bg-[var(--surface-strong)] px-5 py-4 sm:px-6">
       {previewUrl && (
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewUrl}
             alt="preview"
-            className="h-14 w-14 rounded-md object-cover"
+            className="h-16 w-16 rounded-xl object-cover"
           />
           <button
             type="button"
             onClick={() => pickImage(null)}
-            className="text-xs text-zinc-500 underline"
+            className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]"
           >
-            remove
+            Remove image
           </button>
         </div>
       )}
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-3">
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={disabled}
-          className="shrink-0 rounded-full border border-black/10 p-2 text-sm hover:bg-black/5 disabled:opacity-50 dark:border-white/15 dark:hover:bg-white/10"
+          className="shrink-0 rounded-full border border-[var(--border)] bg-white/65 p-3 text-sm hover:bg-white disabled:opacity-50"
           aria-label="Attach image"
           title="Attach image"
         >
-          📎
+          +
         </button>
         <input
           ref={fileRef}
@@ -78,15 +78,15 @@ export function MessageInput({ onSend, disabled }: Props) {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          rows={1}
+          rows={3}
           placeholder="Ask about a conversation, a match, or your strategy…"
-          className="flex-1 resize-none rounded-2xl border border-black/10 bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:opacity-50 dark:border-white/15"
+          className="min-h-[5.5rem] flex-1 resize-none rounded-[1.4rem] border border-[var(--border)] bg-white/75 px-4 py-3 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-[rgba(31,122,90,0.25)] disabled:opacity-50"
         />
         <button
           type="button"
           onClick={handleSend}
           disabled={disabled || (!text.trim() && !image)}
-          className="shrink-0 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-40"
+          className="shrink-0 rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
         >
           Send
         </button>
