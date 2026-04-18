@@ -78,13 +78,8 @@ export function ChatShell() {
           <button
             type="button"
             onClick={() => setReportOpen(true)}
-            disabled={messages.length === 0}
-            className="rounded-full border border-black/10 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15 dark:hover:bg-white/10"
-            title={
-              messages.length === 0
-                ? "Send a few messages first to generate a report"
-                : "Generate analysis report"
-            }
+            className="rounded-full border border-black/10 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+            title="Generate analysis report"
           >
             Analysis report
           </button>

@@ -1,6 +1,7 @@
 """Generate a structured analysis report from current chat + Pinecone memory."""
 
 import json
+import logging
 from typing import Literal
 
 from google.genai import types
@@ -9,6 +10,8 @@ from pydantic import BaseModel, Field
 from coach import memory
 from coach.config import settings
 from coach.gemini import _get_client
+
+logger = logging.getLogger(__name__)
 
 
 class Score(BaseModel):
@@ -63,13 +66,18 @@ class Report(BaseModel):
 
 SYSTEM_INSTRUCTION = """You are a dating coach writing a structured analysis report about a user's dating life.
 
-Analyze what the user has actually said — both in the current session and in past memory — and produce a JSON report that:
-- Is grounded in their real language, not generic advice
-- Quotes the user directly in the "rewrite.original" field (use an actual message they sent; do not invent one)
-- Uses concrete observations for keyPatterns and risks
-- Has investment.you + investment.them = 100
+You have access to TWO sources:
+1. CURRENT SESSION — what the user is saying right now
+2. PAST MEMORY — a semantic retrieval of things the user said in prior sessions
 
-Be honest and specific. If there's very little data, still produce a plausible best-effort report but mark trajectory.confidence accordingly (e.g. "low confidence — limited data")."""
+Your report MUST cross-reference both. Specifically:
+- If PAST MEMORY exists, at least two of your `keyPatterns` must describe recurring behaviors across multiple past situations (not just the current chat). Name the recurring theme, not the one-off.
+- `archetype` should reflect patterns from the full history if PAST MEMORY is non-empty, not just the current message.
+- `rewrite.original` MUST be a direct quote from CURRENT SESSION or PAST MEMORY — never invented. Prefer the most illustrative problem message.
+- `trajectory.confidence` should scale with how much data you have. If PAST MEMORY is empty, explicitly say "low confidence — limited data".
+- Investment percentages must sum to 100.
+
+Be honest and specific. No generic advice. Ground every observation in the user's actual language."""
 
 
 def _format_messages(messages: list[dict]) -> str:
@@ -96,6 +104,21 @@ async def _memory_query(messages: list[dict]) -> str:
 async def generate_report(messages: list[dict], tone: str) -> dict:
     query = await _memory_query(messages)
     memory_context = await memory.retrieve(query, top_k=20)
+
+    memory_items = [
+        line[2:] for line in memory_context.split("\n") if line.startswith("- ")
+    ]
+    current_user_count = sum(1 for m in messages if m.get("role") == "user")
+
+    logger.info(
+        "report.generate memory=%d current_user_messages=%d query=%r",
+        len(memory_items),
+        current_user_count,
+        query[:120],
+    )
+    if memory_items:
+        preview = "; ".join(item[:80] for item in memory_items[:3])
+        logger.info("report.generate memory_preview=%s", preview)
 
     current = _format_messages(messages)
 
@@ -140,4 +163,9 @@ async def generate_report(messages: list[dict], tone: str) -> dict:
         inv["you"] = round(you * 100 / total)
         inv["them"] = 100 - inv["you"]
 
+    data["meta"] = {
+        "memoryItems": len(memory_items),
+        "currentUserMessages": current_user_count,
+        "memorySamples": memory_items[:3],
+    }
     return data

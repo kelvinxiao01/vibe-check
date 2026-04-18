@@ -21,6 +21,11 @@ export type ReportData = {
     improve: string[];
   };
   tarot: { card: string; meaning: string; prediction: string };
+  meta?: {
+    memoryItems: number;
+    currentUserMessages: number;
+    memorySamples: string[];
+  };
 };
 
 export const SCORE_COLORS: Record<string, string> = {

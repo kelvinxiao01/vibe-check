@@ -127,6 +127,8 @@ function ErrorState({ message }: { message: string }) {
 function ReportBody({ report }: { report: ReportData }) {
   return (
     <>
+      {report.meta && <ContextSourcesCard meta={report.meta} />}
+
       <section className={CARD_CLASS}>
         <div className="inline-flex rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
           {report.archetype}
@@ -295,6 +297,66 @@ function ReportBody({ report }: { report: ReportData }) {
         </p>
       </section>
     </>
+  );
+}
+
+function ContextSourcesCard({
+  meta,
+}: {
+  meta: NonNullable<ReportData["meta"]>;
+}) {
+  const { memoryItems, currentUserMessages, memorySamples } = meta;
+  return (
+    <section className={CARD_CLASS}>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+          Context Sources
+        </h2>
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          Pinecone
+        </span>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
+        <div className="rounded-2xl bg-zinc-50 px-4 py-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            Past memory
+          </div>
+          <div className="mt-1 text-lg font-semibold text-zinc-900">
+            {memoryItems}
+          </div>
+          <div className="text-xs text-zinc-500">
+            {memoryItems === 1 ? "utterance" : "utterances"}
+          </div>
+        </div>
+        <div className="rounded-2xl bg-zinc-50 px-4 py-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            Current session
+          </div>
+          <div className="mt-1 text-lg font-semibold text-zinc-900">
+            {currentUserMessages}
+          </div>
+          <div className="text-xs text-zinc-500">
+            {currentUserMessages === 1 ? "message" : "messages"}
+          </div>
+        </div>
+      </div>
+      {memorySamples.length > 0 && (
+        <>
+          <div className="mt-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            Sample quotes pulled from memory
+          </div>
+          <ul className="mt-2 space-y-2 text-sm leading-6 text-zinc-600">
+            {memorySamples.map((quote) => (
+              <li key={quote} className="flex gap-3">
+                <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400" />
+                <span className="italic">&ldquo;{quote}&rdquo;</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }
 
