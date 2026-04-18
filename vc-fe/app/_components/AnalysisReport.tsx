@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { buildReport, type ReportPayload } from "./report-data";
+import { useEffect, useState } from "react";
+import { BACKEND_URL } from "./types";
+import {
+  DEFAULT_SCORE_COLOR,
+  SCORE_COLORS,
+  type ReportData,
+  type ReportPayload,
+} from "./report-data";
 
 const CARD_CLASS =
   "rounded-[28px] border border-black/8 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)]";
@@ -12,7 +18,8 @@ type Props = {
 };
 
 export function AnalysisReport({ payload, onClose }: Props) {
-  const report = useMemo(() => buildReport(payload), [payload]);
+  const [report, setReport] = useState<ReportData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -26,6 +33,36 @@ export function AnalysisReport({ payload, onClose }: Props) {
       document.body.style.overflow = prevOverflow;
     };
   }, [onClose]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/report`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tone: payload.tone,
+            messages: payload.messages.map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+          }),
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          const detail = await res.text();
+          throw new Error(detail || `HTTP ${res.status}`);
+        }
+        const data = (await res.json()) as ReportData;
+        setReport(data);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : "request failed");
+      }
+    })();
+    return () => controller.abort();
+  }, [payload]);
 
   return (
     <div
@@ -53,24 +90,63 @@ export function AnalysisReport({ payload, onClose }: Props) {
             </button>
           </header>
 
-        <section className={CARD_CLASS}>
-          <div className="inline-flex rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-            {report.archetype}
-          </div>
-          <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em]">
-            Perception Summary
-          </h1>
-          <p className="mt-4 text-base leading-7 text-zinc-600">
-            {report.summary}
-          </p>
-        </section>
+          {!report && !error && <LoadingState />}
+          {error && <ErrorState message={error} />}
+          {report && <ReportBody report={report} />}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        <section className={CARD_CLASS}>
-          <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
-            Signal Scores
-          </h2>
-          <div className="mt-5 space-y-4">
-            {report.scores.map((score) => (
+function LoadingState() {
+  return (
+    <section className={`${CARD_CLASS} flex flex-col items-center gap-3 py-10`}>
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700" />
+      <div className="text-sm font-medium text-zinc-500">
+        Analyzing your chat history…
+      </div>
+      <div className="text-xs text-zinc-400">
+        Pulling memory from the knowledge base and running analysis.
+      </div>
+    </section>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <section className={`${CARD_CLASS} flex flex-col gap-2`}>
+      <div className="text-sm font-semibold text-rose-600">
+        Couldn&apos;t generate report
+      </div>
+      <div className="text-sm text-zinc-500">{message}</div>
+    </section>
+  );
+}
+
+function ReportBody({ report }: { report: ReportData }) {
+  return (
+    <>
+      <section className={CARD_CLASS}>
+        <div className="inline-flex rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+          {report.archetype}
+        </div>
+        <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em]">
+          Perception Summary
+        </h1>
+        <p className="mt-4 text-base leading-7 text-zinc-600">
+          {report.summary}
+        </p>
+      </section>
+
+      <section className={CARD_CLASS}>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+          Signal Scores
+        </h2>
+        <div className="mt-5 space-y-4">
+          {report.scores.map((score) => {
+            const color = SCORE_COLORS[score.label] ?? DEFAULT_SCORE_COLOR;
+            return (
               <div key={score.label}>
                 <div className="mb-1 flex items-center justify-between text-sm font-medium">
                   <span>{score.label}</span>
@@ -78,144 +154,147 @@ export function AnalysisReport({ payload, onClose }: Props) {
                 </div>
                 <div className="h-2.5 rounded-full bg-zinc-200">
                   <div
-                    className={`h-full rounded-full ${score.color}`}
+                    className={`h-full rounded-full ${color}`}
                     style={{ width: `${score.value * 10}%` }}
                   />
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
+            );
+          })}
+        </div>
+      </section>
 
-        <section className={CARD_CLASS}>
-          <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
-            Investment Balance
-          </h2>
-          <div className="mt-4 flex items-center justify-between text-sm text-zinc-500">
-            <span>You · {report.investment.you}%</span>
-            <span>{report.investment.them}% · Them</span>
+      <section className={CARD_CLASS}>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+          Investment Balance
+        </h2>
+        <div className="mt-4 flex items-center justify-between text-sm text-zinc-500">
+          <span>You · {report.investment.you}%</span>
+          <span>{report.investment.them}% · Them</span>
+        </div>
+        <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-zinc-200">
+          <div
+            className="h-full bg-zinc-700"
+            style={{ width: `${report.investment.you}%` }}
+          />
+        </div>
+        <p className="mt-4 text-base leading-7 text-zinc-600">
+          {report.investment.description}
+        </p>
+      </section>
+
+      <InfoListCard title="Key Patterns" items={report.keyPatterns} />
+      <InfoListCard
+        title="Risks"
+        items={report.risks}
+        bulletColor="bg-rose-400"
+      />
+
+      <section className={CARD_CLASS}>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+          Rewrite A Message
+        </h2>
+        <div className="mt-4 rounded-2xl bg-zinc-50 p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            Original
           </div>
-          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-zinc-200">
-            <div
-              className="h-full bg-zinc-700"
-              style={{ width: `${report.investment.you}%` }}
-            />
-          </div>
-          <p className="mt-4 text-base leading-7 text-zinc-600">
-            {report.investment.description}
+          <p className="mt-2 text-sm leading-6 text-zinc-500">
+            {report.rewrite.original}
           </p>
-        </section>
+        </div>
+        <div className="mt-3 rounded-2xl border border-black/8 bg-white p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            Improved
+          </div>
+          <p className="mt-2 text-base leading-7">{report.rewrite.improved}</p>
+        </div>
+        <p className="mt-4 text-sm leading-6 text-zinc-500">
+          <span className="font-semibold text-zinc-700">Why:</span>{" "}
+          {report.rewrite.why}
+        </p>
+      </section>
 
-        <InfoListCard title="Key Patterns" items={report.keyPatterns} />
-        <InfoListCard title="Risks" items={report.risks} bulletColor="bg-rose-400" />
+      <section className={CARD_CLASS}>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+          What To Do Next
+        </h2>
+        <div className="mt-4 space-y-3">
+          {report.nextSteps.map((step) => (
+            <article
+              key={step.label}
+              className="rounded-2xl border border-black/8 bg-white p-4"
+            >
+              <div className="inline-flex rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                {step.label}
+              </div>
+              <p className="mt-3 text-base leading-7">{step.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
 
-        <section className={CARD_CLASS}>
-          <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
-            Rewrite A Message
-          </h2>
-          <div className="mt-4 rounded-2xl bg-zinc-50 p-4">
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">
-              Original
-            </div>
-            <p className="mt-2 text-sm leading-6 text-zinc-500">
-              {report.rewrite.original}
+      <section className={CARD_CLASS}>
+        <div className="inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-rose-500">
+          Long-Term Trajectory
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold">
+            {report.trajectory.title}
+          </div>
+          <div className="text-sm text-zinc-500">
+            {report.trajectory.confidence}
+          </div>
+        </div>
+        <div className="mt-5">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+            Key Drivers
+          </h3>
+          <ul className="mt-3 space-y-2 text-base leading-7 text-zinc-600">
+            {report.trajectory.drivers.map((item) => (
+              <li key={item} className="flex gap-3">
+                <span className="mt-3 h-1.5 w-1.5 rounded-full bg-zinc-400" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="mt-5">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+            What Would Improve The Odds
+          </h3>
+          <ul className="mt-3 space-y-2 text-base leading-7 text-zinc-600">
+            {report.trajectory.improve.map((item) => (
+              <li key={item} className="flex gap-3">
+                <span className="mt-3 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="rounded-[28px] bg-gradient-to-br from-[#1f1726] via-[#2e1a2a] to-[#4a2133] p-6 text-white shadow-[0_18px_40px_rgba(37,18,35,0.28)]">
+        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/80">
+          Tarot-ish Vibe Forecast
+        </div>
+        <div className="mt-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-[-0.03em]">
+              {report.tarot.card}
+            </h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-white/80">
+              {report.tarot.meaning}
             </p>
           </div>
-          <div className="mt-3 rounded-2xl border border-black/8 bg-white p-4">
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">
-              Improved
-            </div>
-            <p className="mt-2 text-base leading-7">{report.rewrite.improved}</p>
+          <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]">
+            Playful
           </div>
-          <p className="mt-4 text-sm leading-6 text-zinc-500">
-            <span className="font-semibold text-zinc-700">Why:</span>{" "}
-            {report.rewrite.why}
-          </p>
-        </section>
-
-        <section className={CARD_CLASS}>
-          <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
-            What To Do Next
-          </h2>
-          <div className="mt-4 space-y-3">
-            {report.nextSteps.map((step) => (
-              <article
-                key={step.label}
-                className="rounded-2xl border border-black/8 bg-white p-4"
-              >
-                <div className="inline-flex rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                  {step.label}
-                </div>
-                <p className="mt-3 text-base leading-7">{step.text}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className={CARD_CLASS}>
-          <div className="inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-rose-500">
-            Long-Term Trajectory
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <div className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold">
-              {report.trajectory.title}
-            </div>
-            <div className="text-sm text-zinc-500">
-              {report.trajectory.confidence}
-            </div>
-          </div>
-          <div className="mt-5">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
-              Key Drivers
-            </h3>
-            <ul className="mt-3 space-y-2 text-base leading-7 text-zinc-600">
-              {report.trajectory.drivers.map((item) => (
-                <li key={item} className="flex gap-3">
-                  <span className="mt-3 h-1.5 w-1.5 rounded-full bg-zinc-400" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="mt-5">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
-              What Would Improve The Odds
-            </h3>
-            <ul className="mt-3 space-y-2 text-base leading-7 text-zinc-600">
-              {report.trajectory.improve.map((item) => (
-                <li key={item} className="flex gap-3">
-                  <span className="mt-3 h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        <section className="rounded-[28px] bg-gradient-to-br from-[#1f1726] via-[#2e1a2a] to-[#4a2133] p-6 text-white shadow-[0_18px_40px_rgba(37,18,35,0.28)]">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/80">
-            Tarot-ish Vibe Forecast
-          </div>
-          <div className="mt-4 flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-[-0.03em]">
-                {report.tarot.card}
-              </h2>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-white/80">
-                {report.tarot.meaning}
-              </p>
-            </div>
-            <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]">
-              Playful
-            </div>
-          </div>
-          <p className="mt-5 rounded-2xl bg-white/8 p-4 text-base leading-7 text-white/90">
-            {report.tarot.prediction}
-          </p>
-        </section>
         </div>
-      </div>
-    </div>
+        <p className="mt-5 rounded-2xl bg-white/8 p-4 text-base leading-7 text-white/90">
+          {report.tarot.prediction}
+        </p>
+      </section>
+    </>
   );
 }
 

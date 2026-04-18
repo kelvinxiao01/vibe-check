@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from livekit import api
 from pydantic import BaseModel
 
-from coach import gemini, memory, rag
+from coach import gemini, memory, rag, report as report_mod
 from coach.config import settings
 from coach.prompts import TONES
 
@@ -130,6 +130,22 @@ async def token(req: TokenRequest):
         "roomName": room_name,
         "participantName": identity,
     }
+
+
+class ReportRequest(BaseModel):
+    messages: list[dict]
+    tone: str = "blunt"
+
+
+@app.post("/report")
+async def report(req: ReportRequest):
+    if req.tone not in TONES:
+        raise HTTPException(400, f"unknown tone: {req.tone}")
+    try:
+        data = await report_mod.generate_report(req.messages, req.tone)
+    except Exception as e:
+        raise HTTPException(500, f"report generation failed: {e}")
+    return data
 
 
 if __name__ == "__main__":
