@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnalysisReport } from "./AnalysisReport";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { ToneSelector } from "./ToneSelector";
@@ -12,6 +13,7 @@ export function ChatShell() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   async function sendMessage(text: string, image: File | null) {
     const previewUrl = image ? URL.createObjectURL(image) : undefined;
@@ -64,6 +66,7 @@ export function ChatShell() {
     }
   }
 
+
   return (
     <div className="flex h-dvh flex-col">
       <header className="flex flex-col gap-3 border-b border-black/10 px-4 py-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
@@ -71,23 +74,44 @@ export function ChatShell() {
           <h1 className="text-base font-semibold">Dating Coach</h1>
           <ToneSelector value={tone} onChange={setTone} disabled={voiceOpen} />
         </div>
-        <button
-          type="button"
-          onClick={() => setVoiceOpen((v) => !v)}
-          className={`self-start rounded-full px-4 py-1.5 text-sm font-medium transition-colors sm:self-auto ${
-            voiceOpen
-              ? "bg-red-600 text-white hover:bg-red-700"
-              : "border border-black/10 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-          }`}
-        >
-          {voiceOpen ? "Stop voice" : "🎙 Start voice"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            disabled={messages.length === 0}
+            className="rounded-full border border-black/10 px-4 py-1.5 text-sm font-medium transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15 dark:hover:bg-white/10"
+            title={
+              messages.length === 0
+                ? "Send a few messages first to generate a report"
+                : "Generate analysis report"
+            }
+          >
+            Analysis report
+          </button>
+          <button
+            type="button"
+            onClick={() => setVoiceOpen((v) => !v)}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              voiceOpen
+                ? "bg-red-600 text-white hover:bg-red-700"
+                : "border border-black/10 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+            }`}
+          >
+            {voiceOpen ? "Stop voice" : "🎙 Start voice"}
+          </button>
+        </div>
       </header>
       {voiceOpen && (
         <VoicePanel tone={tone} onClose={() => setVoiceOpen(false)} />
       )}
       <MessageList messages={messages} pending={pending} />
       <MessageInput onSend={sendMessage} disabled={pending} />
+      {reportOpen && (
+        <AnalysisReport
+          payload={{ tone, messages }}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
     </div>
   );
 }
