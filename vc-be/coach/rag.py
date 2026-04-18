@@ -1,28 +1,9 @@
-from pinecone import Pinecone
-
-from coach.config import settings
 from coach.gemini import embed
-
-_pc: Pinecone | None = None
-
-
-def _get_index():
-    global _pc
-    if not settings.pinecone_api_key:
-        return None
-    if _pc is None:
-        _pc = Pinecone(api_key=settings.pinecone_api_key)
-    try:
-        existing = {idx["name"] for idx in _pc.list_indexes()}
-    except Exception:
-        return None
-    if settings.pinecone_index not in existing:
-        return None
-    return _pc.Index(settings.pinecone_index)
+from coach.pinecone_index import get_index
 
 
 async def retrieve(query: str, top_k: int = 4) -> str:
-    index = _get_index()
+    index = get_index()
     if index is None or not query.strip():
         return ""
 

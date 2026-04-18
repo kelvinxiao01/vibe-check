@@ -34,11 +34,12 @@ async def generate(
     messages: list[dict],
     tone: str,
     rag_context: str | None = None,
+    memory_context: str | None = None,
     image_bytes: bytes | None = None,
     image_mime: str | None = None,
 ) -> str:
     client = _get_client()
-    system_prompt = build_system_prompt(tone, rag_context)
+    system_prompt = build_system_prompt(tone, rag_context, memory_context)
     contents = _to_contents(messages, image_bytes, image_mime)
 
     response = await client.aio.models.generate_content(
@@ -54,5 +55,8 @@ async def embed(text: str) -> list[float]:
     response = await client.aio.models.embed_content(
         model=settings.gemini_embedding_model,
         contents=text,
+        config=types.EmbedContentConfig(
+            output_dimensionality=settings.gemini_embedding_dim,
+        ),
     )
     return list(response.embeddings[0].values)

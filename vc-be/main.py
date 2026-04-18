@@ -1,3 +1,4 @@
+import asyncio
 import json
 import uuid
 
@@ -6,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from livekit import api
 from pydantic import BaseModel
 
-from coach import gemini, rag
+from coach import gemini, memory, rag
 from coach.config import settings
 from coach.prompts import TONES
 
@@ -63,15 +64,25 @@ async def chat(
         (m["content"] for m in reversed(parsed_messages) if m.get("role") == "user"),
         "",
     )
-    rag_context = await rag.retrieve(latest_user) if latest_user else ""
+    rag_context, memory_context = ("", "")
+    if latest_user:
+        rag_context, memory_context = await asyncio.gather(
+            rag.retrieve(latest_user),
+            memory.retrieve(latest_user),
+        )
 
     reply = await gemini.generate(
         messages=parsed_messages,
         tone=tone,
         rag_context=rag_context or None,
+        memory_context=memory_context or None,
         image_bytes=image_bytes,
         image_mime=image_mime,
     )
+
+    if latest_user:
+        asyncio.create_task(memory.ingest(latest_user, source="text"))
+
     return {"reply": reply}
 
 

@@ -10,7 +10,8 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY"),
     )
     gemini_text_model: str = "gemini-2.5-flash"
-    gemini_embedding_model: str = "text-embedding-004"
+    gemini_embedding_model: str = "gemini-embedding-001"
+    gemini_embedding_dim: int = 768
 
     livekit_url: str = ""
     livekit_api_key: str = ""
